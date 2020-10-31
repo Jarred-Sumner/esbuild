@@ -111,10 +111,7 @@ platform-neutral: esbuild | scripts/node_modules
 test-otp:
 	test -n "$(OTP)" && echo publish --otp="$(OTP)"
 
-publish-all: cmd/esbuild/version.go test-all test-extra
-	@test master = "`git branch --show-current`" || (echo "Refusing to publish from non-master branch `git branch --show-current`" && false)
-	@echo "Checking for unpushed commits..." && git fetch
-	@test "" = "`git cherry`" || (echo "Refusing to publish with unpushed commits" && false)
+publish-all: cmd/esbuild/version.go test-all
 	rm -fr npm && git checkout npm
 	@echo Enter one-time password:
 	@read OTP && OTP="$$OTP" make -j5 \
