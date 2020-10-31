@@ -132,37 +132,37 @@ publish-all: cmd/esbuild/version.go test-all test-extra
 	git push origin master "v$(ESBUILD_VERSION)"
 
 publish-windows: platform-windows
-	cd npm/esbuild-windows-64 && npm pack
+	npm pack --cwd npm/esbuild-windows-64
 
 publish-windows-32: platform-windows-32
-	cd npm/esbuild-windows-32 && npm pack
+	npm pack --cwd npm/esbuild-windows-32
 
 publish-darwin: platform-darwin
-	cd npm/esbuild-darwin-64 && npm pack
+	npm pack --cwd npm/esbuild-darwin-64
 
 publish-freebsd: platform-freebsd
-	cd npm/esbuild-freebsd-64 && npm pack
+	npm pack --cwd npm/esbuild-freebsd-64
 
 publish-freebsd-arm64: platform-freebsd-arm64
-	cd npm/esbuild-freebsd-arm64 && npm pack
+	npm pack --cwd npm/esbuild-freebsd-arm64
 
 publish-linux: platform-linux
-	cd npm/esbuild-linux-64 && npm pack
+	npm pack --cwd npm/esbuild-linux-64
 
 publish-linux-32: platform-linux-32
-	cd npm/esbuild-linux-32 && npm pack
+	npm pack --cwd npm/esbuild-linux-32
 
 publish-linux-arm64: platform-linux-arm64
-	cd npm/esbuild-linux-arm64 && npm pack
+	npm pack --cwd npm/esbuild-linux-arm64
 
 publish-linux-ppc64le: platform-linux-ppc64le
-	cd npm/esbuild-linux-ppc64le && npm pack
+	npm pack --cwd npm/esbuild-linux-ppc64le
 
 publish-wasm: platform-wasm
-	cd npm/esbuild-wasm && npm pack
+	npm pack --cwd npm/esbuild-wasm
 
 publish-neutral: platform-neutral
-	cd npm/esbuild && npm pack
+	npm pack --cwd npm/esbuild
 
 clean:
 	rm -f esbuild
@@ -184,8 +184,7 @@ clean:
 clean-all: clean
 	rm -fr github demo bench
 
-################################################################################
-# These npm packages are used for benchmarks. Instal them in subdirectories
+################################################################################in subdirectories --cwd These npm packages are used for benchmarks. Instal t
 # because we want to install the same package name at multiple versions
 
 require/webpack/node_modules:
