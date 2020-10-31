@@ -18,7 +18,7 @@ test-all:
 	make -j7 test-go vet-go verify-source-map end-to-end-tests js-api-tests plugin-tests test-wasm
 
 # This includes tests of some 3rd-party libraries, which can be very slow
-test-extra: test-all test-preact-splitting test-sucrase bench-rome-esbuild test-esprima test-rollup
+test-extra:
 
 test-go:
 	go test ./internal/...
@@ -109,19 +109,18 @@ platform-neutral: esbuild | scripts/node_modules
 	node scripts/esbuild.js ./esbuild
 
 test-otp:
-	test -n "$(OTP)" && echo publish --otp="$(OTP)"
+	echo publish
 
-publish-all: cmd/esbuild/version.go test-all
-	rm -fr npm && git checkout npm
+publish-all: cmd/esbuild/version.go test-all test-extra
+	#rm -fr npm && git checkout npm
 	@echo Enter one-time password:
-	@read OTP && OTP="$$OTP" make -j5 \
+	make -j5 \
 		publish-windows \
 		publish-windows-32 \
 		publish-darwin \
 		publish-freebsd \
 		publish-freebsd-arm64
-	@echo Enter one-time password:
-	@read OTP && OTP="$$OTP" make -j5 \
+	make -j5 \
 		publish-linux \
 		publish-linux-32 \
 		publish-linux-arm64 \
@@ -133,37 +132,37 @@ publish-all: cmd/esbuild/version.go test-all
 	git push origin master "v$(ESBUILD_VERSION)"
 
 publish-windows: platform-windows
-	test -n "$(OTP)" && cd npm/esbuild-windows-64 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-windows-64 && npm pack
 
 publish-windows-32: platform-windows-32
-	test -n "$(OTP)" && cd npm/esbuild-windows-32 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-windows-32 && npm pack
 
 publish-darwin: platform-darwin
-	test -n "$(OTP)" && cd npm/esbuild-darwin-64 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-darwin-64 && npm pack
 
 publish-freebsd: platform-freebsd
-	test -n "$(OTP)" && cd npm/esbuild-freebsd-64 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-freebsd-64 && npm pack
 
 publish-freebsd-arm64: platform-freebsd-arm64
-	test -n "$(OTP)" && cd npm/esbuild-freebsd-arm64 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-freebsd-arm64 && npm pack
 
 publish-linux: platform-linux
-	test -n "$(OTP)" && cd npm/esbuild-linux-64 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-linux-64 && npm pack
 
 publish-linux-32: platform-linux-32
-	test -n "$(OTP)" && cd npm/esbuild-linux-32 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-linux-32 && npm pack
 
 publish-linux-arm64: platform-linux-arm64
-	test -n "$(OTP)" && cd npm/esbuild-linux-arm64 && npm publish --otp="$(OTP)"
+	cd npm/esbuild-linux-arm64 && npm pack
 
 publish-linux-ppc64le: platform-linux-ppc64le
-	test -n "$(OTP)" && cd npm/esbuild-linux-ppc64le && npm publish --otp="$(OTP)"
+	cd npm/esbuild-linux-ppc64le && npm pack
 
 publish-wasm: platform-wasm
-	test -n "$(OTP)" && cd npm/esbuild-wasm && npm publish --otp="$(OTP)"
+	cd npm/esbuild-wasm && npm pack
 
 publish-neutral: platform-neutral
-	cd npm/esbuild && npm publish
+	cd npm/esbuild && npm pack
 
 clean:
 	rm -f esbuild
