@@ -51,6 +51,9 @@ func parseOptionsImpl(
 		case arg == "--bundle" && buildOpts != nil:
 			buildOpts.Bundle = true
 
+		case arg == "--externalize" && buildOpts != nil:
+			buildOpts.Externalize = true
+
 		case arg == "--preserve-symlinks" && buildOpts != nil:
 			buildOpts.PreserveSymlinks = true
 

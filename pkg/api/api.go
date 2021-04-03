@@ -256,6 +256,7 @@ type BuildOptions struct {
 	Platform          Platform
 	Format            Format
 	External          []string
+	Externalize       bool
 	MainFields        []string
 	Conditions        []string // For the "exports" field in "package.json"
 	Loader            map[string]Loader

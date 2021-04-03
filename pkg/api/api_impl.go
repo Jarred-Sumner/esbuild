@@ -871,7 +871,7 @@ func rebuildImpl(
 		options.AbsOutputDir = realFS.Cwd()
 	}
 
-	if !buildOpts.Bundle {
+	if !buildOpts.Bundle && !buildOpts.Externalize {
 		// Disallow bundle-only options when not bundling
 		if len(options.ExternalModules.NodeModules) > 0 || len(options.ExternalModules.AbsPaths) > 0 {
 			log.AddError(nil, logger.Loc{}, "Cannot use \"external\" without \"bundle\"")
@@ -887,6 +887,8 @@ func rebuildImpl(
 			options.OutputFormat = config.FormatESModule
 		}
 	}
+
+	options.Externalize = buildOpts.Externalize
 
 	// Set the output mode using other settings
 	if buildOpts.Bundle {

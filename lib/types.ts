@@ -41,6 +41,7 @@ export interface BuildOptions extends CommonOptions {
   outdir?: string;
   outbase?: string;
   platform?: Platform;
+  externalize?: boolean;
   external?: string[];
   loader?: { [ext: string]: Loader };
   resolveExtensions?: string[];

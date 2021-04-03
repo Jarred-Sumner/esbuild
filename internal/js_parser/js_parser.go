@@ -296,6 +296,7 @@ type optionsThatSupportStructuralEquality struct {
 	preserveUnusedImportsTS        bool
 	useDefineForClassFields        bool
 	suppressWarningsAboutWeirdCode bool
+	externalize                    bool
 }
 
 func OptionsFromConfig(options *config.Options) Options {
@@ -320,6 +321,7 @@ func OptionsFromConfig(options *config.Options) Options {
 			preserveUnusedImportsTS:        options.PreserveUnusedImportsTS,
 			useDefineForClassFields:        options.UseDefineForClassFields,
 			suppressWarningsAboutWeirdCode: options.SuppressWarningsAboutWeirdCode,
+			externalize:                    options.Externalize,
 		},
 	}
 }
@@ -11302,7 +11304,7 @@ func (p *parser) visitExprInOut(expr js_ast.Expr, in exprIn) (js_ast.Expr, exprO
 				// error from the unbundled require() call failing.
 				omitWarnings := p.fnOrArrowDataVisit.tryBodyCount != 0
 
-				if p.options.mode == config.ModeBundle {
+				if p.options.mode == config.ModeBundle || p.options.externalize {
 					// There must be one argument
 					if len(e.Args) == 1 {
 						return p.maybeTransposeIfExprChain(e.Args[0], func(arg js_ast.Expr) js_ast.Expr {

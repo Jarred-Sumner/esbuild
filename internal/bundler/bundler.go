@@ -421,7 +421,7 @@ func parseFile(args parseArgs) {
 
 	// Run the resolver on the parse thread so it's not run on the main thread.
 	// That way the main thread isn't blocked if the resolver takes a while.
-	if args.options.Mode == config.ModeBundle && !args.skipResolve {
+	if (args.options.Mode == config.ModeBundle && !args.skipResolve) || args.options.Externalize {
 		// Clone the import records because they will be mutated later
 		recordsPtr := result.file.repr.importRecords()
 		records := append([]ast.ImportRecord{}, *recordsPtr...)
@@ -1524,7 +1524,7 @@ func (s *scanner) scanAllDependencies() {
 		}
 
 		// Don't try to resolve paths if we're not bundling
-		if s.options.Mode == config.ModeBundle {
+		if s.options.Mode == config.ModeBundle || s.options.Externalize {
 			records := *result.file.repr.importRecords()
 			for importRecordIndex := range records {
 				record := &records[importRecordIndex]
@@ -1583,7 +1583,7 @@ func (s *scanner) processScannedFiles() []file {
 		}
 
 		// Don't try to resolve paths if we're not bundling
-		if s.options.Mode == config.ModeBundle {
+		if s.options.Mode == config.ModeBundle || s.options.Externalize {
 			records := *result.file.repr.importRecords()
 			for importRecordIndex := range records {
 				record := &records[importRecordIndex]

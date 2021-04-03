@@ -158,6 +158,7 @@ const (
 	ModePassThrough Mode = iota
 	ModeConvertFormat
 	ModeBundle
+	ModeExternalize
 )
 
 type ModuleType uint8
@@ -170,6 +171,7 @@ const (
 
 type Options struct {
 	Mode              Mode
+	Externalize       bool
 	ModuleType        ModuleType
 	PreserveSymlinks  bool
 	RemoveWhitespace  bool

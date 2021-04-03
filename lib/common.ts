@@ -172,6 +172,7 @@ function flagsForBuildOptions(
   let bundle = getFlag(options, keys, 'bundle', mustBeBoolean);
   let watch = getFlag(options, keys, 'watch', mustBeBooleanOrObject);
   let splitting = getFlag(options, keys, 'splitting', mustBeBoolean);
+  let externalize = getFlag(options, keys, 'externalize', mustBeBoolean);
   let preserveSymlinks = getFlag(options, keys, 'preserveSymlinks', mustBeBoolean);
   let metafile = getFlag(options, keys, 'metafile', mustBeBoolean);
   let outfile = getFlag(options, keys, 'outfile', mustBeString);
@@ -219,6 +220,7 @@ function flagsForBuildOptions(
   if (metafile) flags.push(`--metafile`);
   if (outfile) flags.push(`--outfile=${outfile}`);
   if (outdir) flags.push(`--outdir=${outdir}`);
+  if (externalize) flags.push(`--externalize`)
   if (outbase) flags.push(`--outbase=${outbase}`);
   if (platform) flags.push(`--platform=${platform}`);
   if (tsconfig) flags.push(`--tsconfig=${tsconfig}`);

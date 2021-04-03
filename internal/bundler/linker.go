@@ -1269,6 +1269,14 @@ func (c *linkerContext) scanImportsAndExports() {
 	// Step 1: Figure out what modules must be CommonJS
 	for _, sourceIndex := range c.reachableFiles {
 		file := &c.files[sourceIndex]
+
+		if !file.isEntryPoint() && c.options.Externalize {
+			c.entryPoints = append(c.entryPoints, entryMeta{
+				sourceIndex: file.source.Index,
+			})
+			file.entryPointKind = entryPointUserSpecified
+		}
+
 		switch repr := file.repr.(type) {
 		case *reprCSS:
 			// We shouldn't need to clone this because it should be empty for CSS files
@@ -1292,61 +1300,54 @@ func (c *linkerContext) scanImportsAndExports() {
 			}
 
 		case *reprJS:
-			for importRecordIndex := range repr.ast.ImportRecords {
-				record := &repr.ast.ImportRecords[importRecordIndex]
-				if !record.SourceIndex.IsValid() {
-					continue
-				}
-
-				otherFile := &c.files[record.SourceIndex.GetIndex()]
-				otherRepr := otherFile.repr.(*reprJS)
-
-				switch record.Kind {
-				case ast.ImportStmt:
-					// Importing using ES6 syntax from a file without any ES6 syntax
-					// causes that module to be considered CommonJS-style, even if it
-					// doesn't have any CommonJS exports.
-					//
-					// That means the ES6 imports will become undefined instead of
-					// causing errors. This is for compatibility with older CommonJS-
-					// style bundlers.
-					//
-					// We emit a warning in this case but try to avoid turning the module
-					// into a CommonJS module if possible. This is possible with named
-					// imports (the module stays an ECMAScript module but the imports are
-					// rewritten with undefined) but is not possible with star or default
-					// imports:
-					//
-					//   import * as ns from './empty-file'
-					//   import defVal from './empty-file'
-					//   console.log(ns, defVal)
-					//
-					// In that case the module *is* considered a CommonJS module because
-					// the namespace object must be created.
-					if (record.ContainsImportStar || record.ContainsDefaultAlias) && otherRepr.ast.ExportsKind == js_ast.ExportsNone && !otherRepr.ast.HasLazyExport {
-						otherRepr.meta.wrap = wrapCJS
-						otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
+			if c.options.Externalize {
+				for importRecordIndex := range repr.ast.ImportRecords {
+					record := &repr.ast.ImportRecords[importRecordIndex]
+					if !record.SourceIndex.IsValid() {
+						continue
 					}
 
-				case ast.ImportRequire:
-					// Files that are imported with require() must be CommonJS modules
-					if otherRepr.ast.ExportsKind == js_ast.ExportsESM {
-						otherRepr.meta.wrap = wrapESM
-					} else {
-						otherRepr.meta.wrap = wrapCJS
-						otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
-					}
+					otherFile := &c.files[record.SourceIndex.GetIndex()]
+					otherRepr := otherFile.repr.(*reprJS)
 
-				case ast.ImportDynamic:
-					if c.options.CodeSplitting {
-						// Files that are imported with import() must be entry points
-						if otherFile.entryPointKind == entryPointNone {
-							c.entryPoints = append(c.entryPoints, entryMeta{
-								sourceIndex: record.SourceIndex.GetIndex(),
-							})
-							otherFile.entryPointKind = entryPointDynamicImport
+					switch record.Kind {
+					case ast.ImportStmt:
+						// Importing using ES6 syntax from a file without any ES6 syntax
+						// causes that module to be considered CommonJS-style, even if it
+						// doesn't have any CommonJS exports.
+						//
+						// That means the ES6 imports will become undefined instead of
+						// causing errors. This is for compatibility with older CommonJS-
+						// style bundlers.
+						//
+						// We emit a warning in this case but try to avoid turning the module
+						// into a CommonJS module if possible. This is possible with named
+						// imports (the module stays an ECMAScript module but the imports are
+						// rewritten with undefined) but is not possible with star or default
+						// imports:
+						//
+						//   import * as ns from './empty-file'
+						//   import defVal from './empty-file'
+						//   console.log(ns, defVal)
+						//
+						// In that case the module *is* considered a CommonJS module because
+						// the namespace object must be created.
+						if (record.ContainsImportStar || record.ContainsDefaultAlias) && otherRepr.ast.ExportsKind == js_ast.ExportsNone && !otherRepr.ast.HasLazyExport {
+							otherRepr.meta.wrap = wrapCJS
+							otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
 						}
-					} else {
+
+					case ast.ImportRequire:
+						// Files that are imported with require() must be CommonJS modules
+						if otherRepr.ast.ExportsKind == js_ast.ExportsESM {
+							otherRepr.meta.wrap = wrapESM
+						} else {
+							otherRepr.meta.wrap = wrapCJS
+							otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
+						}
+
+					case ast.ImportDynamic:
+
 						// If we're not splitting, then import() is just a require() that
 						// returns a promise, so the imported file must be a CommonJS module
 						if otherRepr.ast.ExportsKind == js_ast.ExportsESM {
@@ -1356,16 +1357,93 @@ func (c *linkerContext) scanImportsAndExports() {
 							otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
 						}
 					}
-				}
-			}
 
-			// If the output format doesn't have an implicit CommonJS wrapper, any file
-			// that uses CommonJS features will need to be wrapped, even though the
-			// resulting wrapper won't be invoked by other files. An exception is made
-			// for entry point files in CommonJS format (or when in pass-through mode).
-			if repr.ast.ExportsKind == js_ast.ExportsCommonJS && (!file.isEntryPoint() ||
-				c.options.OutputFormat == config.FormatIIFE || c.options.OutputFormat == config.FormatESModule) {
-				repr.meta.wrap = wrapCJS
+					// Files that are imported with import() must be entry points
+					if otherFile.entryPointKind == entryPointNone {
+						c.entryPoints = append(c.entryPoints, entryMeta{
+							sourceIndex: record.SourceIndex.GetIndex(),
+						})
+						otherFile.entryPointKind = entryPointUserSpecified
+					}
+				}
+
+			} else {
+
+				for importRecordIndex := range repr.ast.ImportRecords {
+					record := &repr.ast.ImportRecords[importRecordIndex]
+					if !record.SourceIndex.IsValid() {
+						continue
+					}
+
+					otherFile := &c.files[record.SourceIndex.GetIndex()]
+					otherRepr := otherFile.repr.(*reprJS)
+
+					switch record.Kind {
+					case ast.ImportStmt:
+						// Importing using ES6 syntax from a file without any ES6 syntax
+						// causes that module to be considered CommonJS-style, even if it
+						// doesn't have any CommonJS exports.
+						//
+						// That means the ES6 imports will become undefined instead of
+						// causing errors. This is for compatibility with older CommonJS-
+						// style bundlers.
+						//
+						// We emit a warning in this case but try to avoid turning the module
+						// into a CommonJS module if possible. This is possible with named
+						// imports (the module stays an ECMAScript module but the imports are
+						// rewritten with undefined) but is not possible with star or default
+						// imports:
+						//
+						//   import * as ns from './empty-file'
+						//   import defVal from './empty-file'
+						//   console.log(ns, defVal)
+						//
+						// In that case the module *is* considered a CommonJS module because
+						// the namespace object must be created.
+						if (record.ContainsImportStar || record.ContainsDefaultAlias) && otherRepr.ast.ExportsKind == js_ast.ExportsNone && !otherRepr.ast.HasLazyExport {
+							otherRepr.meta.wrap = wrapCJS
+							otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
+						}
+
+					case ast.ImportRequire:
+						// Files that are imported with require() must be CommonJS modules
+						if otherRepr.ast.ExportsKind == js_ast.ExportsESM {
+							otherRepr.meta.wrap = wrapESM
+						} else {
+							otherRepr.meta.wrap = wrapCJS
+							otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
+						}
+
+					case ast.ImportDynamic:
+						if c.options.CodeSplitting {
+							// Files that are imported with import() must be entry points
+							if otherFile.entryPointKind == entryPointNone {
+								c.entryPoints = append(c.entryPoints, entryMeta{
+									sourceIndex: record.SourceIndex.GetIndex(),
+								})
+								otherFile.entryPointKind = entryPointDynamicImport
+							}
+						} else {
+							// If we're not splitting, then import() is just a require() that
+							// returns a promise, so the imported file must be a CommonJS module
+							if otherRepr.ast.ExportsKind == js_ast.ExportsESM {
+								otherRepr.meta.wrap = wrapESM
+							} else {
+								otherRepr.meta.wrap = wrapCJS
+								otherRepr.ast.ExportsKind = js_ast.ExportsCommonJS
+							}
+						}
+					}
+				}
+
+				// If the output format doesn't have an implicit CommonJS wrapper, any file
+				// that uses CommonJS features will need to be wrapped, even though the
+				// resulting wrapper won't be invoked by other files. An exception is made
+				// for entry point files in CommonJS format (or when in pass-through mode).
+				if repr.ast.ExportsKind == js_ast.ExportsCommonJS && (!file.isEntryPoint() ||
+					c.options.OutputFormat == config.FormatIIFE || c.options.OutputFormat == config.FormatESModule) {
+					repr.meta.wrap = wrapCJS
+				}
 			}
 		}
 	}
