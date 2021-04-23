@@ -6034,7 +6034,17 @@ func (p *parser) parseStmt(opts parseStmtOpts) js_ast.Stmt {
 			stmt.NamespaceRef = p.newSymbol(js_ast.SymbolOther, name)
 			p.currentScope.Generated = append(p.currentScope.Generated, stmt.NamespaceRef)
 		}
-		itemRefs := make(map[string]js_ast.LocRef)
+
+		itemRefsCount := 0
+		if stmt.DefaultName != nil {
+			itemRefsCount++
+		}
+
+		if stmt.Items != nil {
+			itemRefsCount += len(*stmt.Items)
+		}
+
+		itemRefs := make(map[string]js_ast.LocRef, itemRefsCount)
 
 		// Link the default item to the namespace
 		if stmt.DefaultName != nil {
